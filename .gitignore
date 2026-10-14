@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment files - strictly ignore all secrets
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+server/.env
+server/.env.*
+client/.env
+client/.env.*
+!.env.example
+!server/.env.example
+!client/.env.example
+
+# Database & SQLite files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+dev.db
+prisma/*.db
+server/prisma/*.db
+server/prisma/dev.db
+
+# Uploads & User Generated Content
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Logs, test artifacts, coverage
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+coverage/
+.system_generated/
+
+# Build output
+dist/
+client/dist/
+build/
+.next/
+out/
+.vercel
+*.timestamp-*.mjs
+*.mjs.map
+
+# IDE / OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

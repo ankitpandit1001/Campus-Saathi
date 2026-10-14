@@ -1,0 +1,344 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("SQLITE_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  avatarUrl    String?
+  isSuperAdmin Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships           Membership[]
+  joinRequests          InstitutionJoinRequest[]
+  reviewedJoinRequests  InstitutionJoinRequest[]  @relation("ReviewedJoinRequests")
+  complaints            Complaint[]               @relation("StudentComplaints")
+  assignedComplaints    Complaint[]               @relation("StaffAssignedComplaints")
+  assignments           ComplaintAssignment[]     @relation("StaffAssignments")
+  assignedByMe          ComplaintAssignment[]     @relation("AdminAssignments")
+  comments              ComplaintComment[]
+  statusChanges         ComplaintStatusHistory[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+
+  @@index([email])
+  @@index([isSuperAdmin])
+  @@index([isActive])
+}
+
+model Institution {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  code            String   @unique
+  name            String
+  type            String   @default("COLLEGE") // SCHOOL, COLLEGE, UNIVERSITY, OTHER
+  state           String
+  city            String
+  address         String?
+  contactEmail    String
+  contactPhone    String?
+  website         String?
+  logoUrl         String?
+  status          String   @default("PENDING") // PENDING, ACTIVE, SUSPENDED, REJECTED
+  rejectionReason String?
+  isDemo          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships     Membership[]
+  joinRequests    InstitutionJoinRequest[]
+  departments     Department[]
+  categories      ComplaintCategory[]
+  complaints      Complaint[]
+  statusHistories ComplaintStatusHistory[]
+  comments        ComplaintComment[]
+  attachments     ComplaintAttachment[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  settings        InstitutionSettings?
+  slaPolicies     ServiceLevelPolicy[]
+
+  @@index([slug])
+  @@index([code])
+  @@index([status])
+  @@index([type])
+  @@index([state])
+  @@index([city])
+}
+
+model Membership {
+  id            String   @id @default(uuid())
+  userId        String
+  institutionId String
+  role          String   @default("STUDENT") // ADMIN, STAFF, STUDENT
+  status        String   @default("ACTIVE") // PENDING, ACTIVE, REJECTED, SUSPENDED, REVOKED
+  departmentId  String?
+  studentId     String?
+  staffTitle    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, institutionId])
+  @@index([userId])
+  @@index([institutionId])
+  @@index([role])
+  @@index([status])
+}
+
+model InstitutionJoinRequest {
+  id            String    @id @default(uuid())
+  institutionId String
+  userId        String
+  requestedRole String    @default("STUDENT") // STUDENT, STAFF
+  departmentId  String?
+  studentId     String?
+  notes         String?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy    User?       @relation("ReviewedJoinRequests", fields: [reviewedById], references: [id])
+
+  @@index([institutionId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Department {
+  id            String      @id @default(uuid())
+  institutionId String
+  name          String
+  code          String
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  memberships   Membership[]
+  complaints    Complaint[]
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+}
+
+model ComplaintCategory {
+  id            String      @id @default(uuid())
+  institutionId String
+  name          String
+  description   String
+  slaHours      Int         @default(48)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  complaints    Complaint[]
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+  @@index([isActive])
+}
+
+model Complaint {
+  id                String    @id @default(uuid())
+  complaintNumber   String    // CF-SUN-2026-0001
+  institutionId     String
+  title             String
+  description       String
+  categoryId        String
+  departmentId      String?
+  location          String
+  roomNumber        String?
+  priority          String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status            String    @default("SUBMITTED") // SUBMITTED, ACKNOWLEDGED, IN_PROGRESS, ON_HOLD, RESOLVED, REOPENED, CLOSED
+  studentId         String
+  assignedStaffId   String?
+  imageUrl          String?
+  reopenReason      String?
+  rejectionReason   String?
+  resolutionSummary String?
+  resolvedAt        DateTime?
+  closedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  institution   Institution              @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  student       User                     @relation("StudentComplaints", fields: [studentId], references: [id], onDelete: Cascade)
+  assignedStaff User?                    @relation("StaffAssignedComplaints", fields: [assignedStaffId], references: [id])
+  category      ComplaintCategory        @relation(fields: [categoryId], references: [id])
+  department    Department?              @relation(fields: [departmentId], references: [id])
+  assignments   ComplaintAssignment[]
+  comments      ComplaintComment[]
+  statusHistory ComplaintStatusHistory[]
+  attachments   ComplaintAttachment[]
+
+  @@unique([institutionId, complaintNumber])
+  @@index([institutionId])
+  @@index([studentId])
+  @@index([assignedStaffId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model ComplaintAssignment {
+  id           String    @id @default(uuid())
+  complaintId  String
+  staffId      String
+  assignedById String
+  notes        String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  staff        User      @relation("StaffAssignments", fields: [staffId], references: [id])
+  assignedBy   User      @relation("AdminAssignments", fields: [assignedById], references: [id])
+
+  @@index([complaintId])
+  @@index([staffId])
+  @@index([isActive])
+}
+
+model ComplaintComment {
+  id            String      @id @default(uuid())
+  complaintId   String
+  institutionId String
+  userId        String
+  content       String
+  isInternal    Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  complaint     Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@index([complaintId])
+  @@index([institutionId])
+  @@index([userId])
+}
+
+model ComplaintStatusHistory {
+  id            String      @id @default(uuid())
+  complaintId   String
+  institutionId String
+  oldStatus     String
+  newStatus     String
+  changedById   String
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  complaint     Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  changedBy     User        @relation(fields: [changedById], references: [id])
+
+  @@index([complaintId])
+  @@index([institutionId])
+  @@index([changedById])
+  @@index([createdAt])
+}
+
+model ComplaintAttachment {
+  id            String      @id @default(uuid())
+  complaintId   String
+  institutionId String
+  fileName      String
+  fileUrl       String
+  fileSize      Int
+  mimeType      String
+  uploadedById  String
+  createdAt     DateTime    @default(now())
+
+  complaint     Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@index([institutionId])
+}
+
+model Notification {
+  id            String       @id @default(uuid())
+  userId        String
+  institutionId String?
+  title         String
+  message       String
+  link          String?
+  type          String       @default("INFO")
+  isRead        Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([institutionId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id            String       @id @default(uuid())
+  institutionId String?
+  userId        String?
+  action        String
+  entityType    String
+  entityId      String?
+  details       String?
+  ipAddress     String?
+  createdAt     DateTime     @default(now())
+
+  institution   Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId])
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model InstitutionSettings {
+  id                    String      @id @default(uuid())
+  institutionId         String      @unique
+  allowSelfRegistration Boolean     @default(true)
+  requireEmailDomain    Boolean     @default(false)
+  allowedEmailDomains   String?     // e.g. "sunrise.edu,sun.ac.in"
+  defaultSlaHours       Int         @default(48)
+  slaEscalationEnabled  Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  institution           Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+}
+
+model ServiceLevelPolicy {
+  id                     String      @id @default(uuid())
+  institutionId          String
+  priority               String      // LOW, MEDIUM, HIGH, URGENT
+  targetResponseHours    Int         @default(24)
+  targetResolutionHours  Int         @default(72)
+  createdAt              DateTime    @default(now())
+
+  institution            Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, priority])
+  @@index([institutionId])
+}

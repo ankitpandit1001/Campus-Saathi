@@ -22,7 +22,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 24h
       - key: CLIENT_URL
-        sync: false
+        value: https://campus-saathi-two.vercel.app
       - key: MAX_FILE_SIZE_MB
         value: 5
       - key: UPLOAD_DIR

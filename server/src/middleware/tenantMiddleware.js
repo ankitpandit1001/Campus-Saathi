@@ -28,6 +28,9 @@ export async function resolveTenant(req, res, next) {
           userId: req.user.id,
           status: 'ACTIVE',
         },
+        orderBy: {
+          createdAt: 'asc',
+        },
         include: { institution: true },
       });
 

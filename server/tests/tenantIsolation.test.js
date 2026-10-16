@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/utils/prisma.js';
@@ -320,5 +320,9 @@ describe('CampusFix SaaS Multi-Tenant Isolation Test Suite', () => {
 
     expect(approveRes.status).toBe(200);
     expect(approveRes.body.data.institution.status).toBe('ACTIVE');
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
   });
 });

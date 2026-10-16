@@ -307,6 +307,9 @@ export async function registerInstitution(req, res, next) {
       });
 
       return { institution, adminUser };
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     });
 
     return res.status(201).json({

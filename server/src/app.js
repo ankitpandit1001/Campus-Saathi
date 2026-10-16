@@ -16,8 +16,13 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import prisma from './utils/prisma.js';
 
+import dotenv from 'dotenv';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const app = express();
 
@@ -49,6 +54,7 @@ const configuredOrigins = clientUrlEnv
   .filter(Boolean);
 
 const defaultOrigins = [
+  'https://campus-saathi-two.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
@@ -57,31 +63,34 @@ const defaultOrigins = [
 
 const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., mobile apps, curl, health checks)
-      if (!origin) {
-        return callback(null, true);
-      }
-      const normalized = origin.replace(/\/+$/, '');
-      if (allowedOrigins.has(normalized)) {
-        return callback(null, true);
-      }
-      // Allow Vercel preview URLs if configured or matching vercel.app
-      if (
-        process.env.ALLOW_VERCEL_PREVIEWS === 'true' &&
-        (normalized.endsWith('.vercel.app') || normalized.includes('vercel.app'))
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Institution-Id', 'Accept'],
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., mobile apps, curl, health checks)
+    if (!origin) {
+      return callback(null, true);
+    }
+    const normalized = origin.trim().replace(/\/+$/, '');
+    if (allowedOrigins.has(normalized)) {
+      return callback(null, true);
+    }
+    // Allow Vercel preview URLs if configured or matching vercel.app
+    if (
+      process.env.ALLOW_VERCEL_PREVIEWS === 'true' &&
+      (normalized.endsWith('.vercel.app') || normalized.includes('vercel.app'))
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Institution-Id', 'Accept'],
+  maxAge: 86400,
+};
+
+// Handle all CORS requests and preflight OPTIONS requests across all routes
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

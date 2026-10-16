@@ -6,6 +6,7 @@ export const authRateLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     message: 'Too many authentication attempts from this IP, please try again after 15 minutes.',
@@ -18,6 +19,7 @@ export const apiRateLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     message: 'Too many requests, please slow down.',

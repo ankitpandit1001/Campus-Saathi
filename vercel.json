@@ -3,8 +3,15 @@
   "framework": "vite",
   "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
-  "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://campus-saathi-ipbq.onrender.com/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://campus-saathi-ipbq.onrender.com/uploads/:path*"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

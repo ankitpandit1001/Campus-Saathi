@@ -22,11 +22,12 @@ describe('CampusFix Comprehensive API Test Suite', () => {
       .send({ email: 'admin@campusfix.edu', password: 'Admin@123' });
     expect(adminRes.status).toBe(200);
     adminToken = adminRes.body.data.token;
+    const institutionId = adminRes.body.data.user.activeInstitution.id;
 
     // 2. Login as Assigned Staff (Anita Deshmukh)
     const staffRes = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'anita.network@campusfix.edu', password: 'Staff@123' });
+      .send({ email: 'anita.network@campusfix.edu', password: 'Staff@123', institutionId });
     expect(staffRes.status).toBe(200);
     staffToken = staffRes.body.data.token;
     staffId = staffRes.body.data.user.id;
@@ -34,14 +35,14 @@ describe('CampusFix Comprehensive API Test Suite', () => {
     // 3. Login as Unassigned Staff (Suresh Patil)
     const unassignedRes = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'suresh.plumb@campusfix.edu', password: 'Staff@123' });
+      .send({ email: 'suresh.plumb@campusfix.edu', password: 'Staff@123', institutionId });
     expect(unassignedRes.status).toBe(200);
     unassignedStaffToken = unassignedRes.body.data.token;
 
     // 4. Login as Student 1 (Rahul)
     const s1Res = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'rahul.sharma@campusfix.edu', password: 'Student@123' });
+      .send({ email: 'rahul.sharma@campusfix.edu', password: 'Student@123', institutionId });
     expect(s1Res.status).toBe(200);
     student1Token = s1Res.body.data.token;
     student1Id = s1Res.body.data.user.id;
@@ -49,7 +50,7 @@ describe('CampusFix Comprehensive API Test Suite', () => {
     // 5. Login as Student 2 (Priya)
     const s2Res = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'priya.patel@campusfix.edu', password: 'Student@123' });
+      .send({ email: 'priya.patel@campusfix.edu', password: 'Student@123', institutionId });
     expect(s2Res.status).toBe(200);
     student2Token = s2Res.body.data.token;
     student2Id = s2Res.body.data.user.id;
